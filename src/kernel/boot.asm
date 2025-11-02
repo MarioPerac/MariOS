@@ -1,3 +1,5 @@
+extern kernel_main
+extern long_mode_entry
 
 section .multiboot_header
 align 8 ; must be 64-bit aligned
@@ -42,6 +44,9 @@ start:
 
     ; load the 64-bit GDT
     lgdt [(gdt64.pointer - KERNEL_VMA)]
+
+    ; jump to 64-bit code segment (kernel code)
+    jmp gdt64.kernel_code:(long_mode_entry - KERNEL_VMA)
     
 set_up_page_tables:
     ; map first P4 table entry to P3 table entry
@@ -92,7 +97,6 @@ enable_paging:
     mov cr0, eax
 
     ret
-
 
 section .bss
 align 4

@@ -9,8 +9,8 @@
 #error "You are not using a cross-compiler."
 #endif
 
-#if !defined(__i386__)
-#error "This code requires 32-bit x86 architecture (i386 or newer, such as i686)."
+#if !defined(__x86_64__)
+#error "This code requires 64-bit x86_64 architecture."
 #endif
 
 // NOTE: Start by reading kernel_main, then work your way up the file.
@@ -69,7 +69,7 @@ private:
     static constexpr size_t WIDTH = 80;                        // Characters per row
     static constexpr size_t HEIGHT = 25;                       // Number of rows
     static constexpr size_t TOTAL_CHARACTERS = WIDTH * HEIGHT; // Total screen cells (2000)
-    static constexpr uintptr_t VGA_MEMORY_ADDRESS = 0xB8000;   // VGA text buffer address
+    static constexpr uintptr_t VGA_MEMORY_ADDRESS = 0xFFFF8000000B8000;   // VGA text buffer address
 
     // Pointer to the start of the VGA memory.
     // We treat it as an array of 16-bit values (1 char + 1 color byte per character cell).
