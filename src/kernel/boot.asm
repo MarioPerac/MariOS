@@ -38,8 +38,11 @@ start:
     mov esp, (kernel_stack_top - KERNEL_VMA)
 
     call set_up_page_tables
+    call enable_paging    
 
-
+    ; load the 64-bit GDT
+    lgdt [(gdt64.pointer - KERNEL_VMA)]
+    
 set_up_page_tables:
     ; map first P4 table entry to P3 table entry
     mov eax, (p3_table - KERNEL_VMA)
@@ -69,6 +72,28 @@ set_up_page_tables:
 
     ret
 
+enable_paging:
+    ; CR3 tells the CPU where the page tables start in physical memory
+    mov eax, (p4_table - KERNEL_VMA)
+    mov cr3, eax
+
+    ; bit 5 in CR4 is the PAE flag (Physical Address Extension)
+    mov eax, cr4
+    or eax, 1 << 5
+    mov cr4, eax
+
+    mov ecx, 0xC0000080 ; address of a special CPU register, called the EFER MSR
+    rdmsr ; read from MSR
+    or eax, 1 << 8 ; sets LME (Long Mode Enable) bit
+    wrmsr ; wrtie to MSR
+
+    mov eax, cr0
+    or eax, 1 << 31 ; sets PG (Paging) bit
+    mov cr0, eax
+
+    ret
+
+
 section .bss
 align 4
 global kernel_stack_top
@@ -90,3 +115,35 @@ p3_table:
 global p2_table
 p2_table:
     times 512 dq 0
+
+global gdt64
+global gdt64.pointer
+
+; Global Descriptor Table (64-bit)
+; The entries in the GDT are 8 bytes long
+gdt64:
+.null: equ $ - gdt64 ; The null descriptor
+    dw 0                         ; Limit (low).
+    dw 0                         ; Base (low).
+    db 0                         ; Base (middle)
+    db 0                         ; Access.
+    db 0                         ; Granularity.
+    db 0                         ; Base (high).
+.kernel_code: equ $ - gdt64         ; The code descriptor.
+    dw 0                         ; Limit (low).
+    dw 0                         ; Base (low).
+    db 0                         ; Base (middle)
+    db 10011000b                 ; Present=1 + DPL=00 + S=1 (system segment) + Type=1000(Execute only)
+    db 00100000b                 ; Granularity, 64 bits flag, limit19:16.
+    db 0                         ; Base (high).
+.kernel_data: equ $ - gdt64         ; The data descriptor.
+    dw 0                         ; Limit (low).
+    dw 0                         ; Base (low).
+    db 0                         ; Base (middle)
+    db 10010010b                 ; Present=1 + DPL=00 + S=1 + Type=0010(Read/Write)
+    db 00000000b                 ; Granularity.
+    db 0                         ; Base (high).
+.pointer:                    ; The GDT-pointer.
+    dw $ - gdt64 - 1             ; Limit.
+    dq gdt64                     ; Base.
+    
