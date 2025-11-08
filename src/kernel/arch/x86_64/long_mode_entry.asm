@@ -26,9 +26,6 @@ long_mode_entry:
     ; Set up stack
     mov rsp, kernel_stack_top
     
-    ; Clear the frame pointer
-    xor rbp, rbp
-    
     ; Call kernel main
     call kernel_main
     
